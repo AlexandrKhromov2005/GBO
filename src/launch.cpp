@@ -1,13 +1,12 @@
 #include "../include/launch.h"
 
 void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path) {
-    cv::Mat image = cv::imread(image_path, cv::IMREAD_GRAYSCALE);
+    cv::Mat image = cv::imread(image_path, CV_8UC1);
     if (image.empty()) {
         throw std::runtime_error("Could not open or find the image: " + image_path);
     }
-    image.convertTo(image, CV_64FC1);
 
-    cv::Mat watermark = cv::imread(watermark_path, cv::IMREAD_GRAYSCALE);
+    cv::Mat watermark = cv::imread(watermark_path, CV_8UC1);
     if (watermark.empty()) {
         throw std::runtime_error("Could not open or find the watermark: " + watermark_path);
     }
@@ -29,11 +28,11 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
 }
 
 void extractWatermark(std::string watermarked_image_path, std::string extracted_watermark_path) {
-    cv::Mat watermarked_image = cv::imread(watermarked_image_path, cv::IMREAD_GRAYSCALE);
+    cv::Mat watermarked_image = cv::imread(watermarked_image_path, CV_8UC1);
     if (watermarked_image.empty()) {
         throw std::runtime_error("Could not open or find the watermarked image: " + watermarked_image_path);
     }
-    watermarked_image.convertTo(watermarked_image, CV_64FC1);
+    watermarked_image.convertTo(watermarked_image, CV_8UC1);
 
     std::vector<cv::Mat> blocks = splitImageInto8x8Blocks(watermarked_image);
     std::vector<unsigned char> extracted_bits(1024, 0);
@@ -77,10 +76,10 @@ void launchGBO(const std::string& image_path,
     }
 
     //Calculation of metrics
-    cv::Mat original_image = cv::imread(image_path, cv::IMREAD_GRAYSCALE);
-    cv::Mat watermark_image = cv::imread(watermark_path, cv::IMREAD_GRAYSCALE);
-    cv::Mat watermarked_image = cv::imread(watermarked_output_path, cv::IMREAD_GRAYSCALE);
-    cv::Mat extracted_watermark = cv::imread(extracted_output_path, cv::IMREAD_GRAYSCALE);
+    cv::Mat original_image = cv::imread(image_path, CV_8UC1);
+    cv::Mat watermark_image = cv::imread(watermark_path, CV_8UC1);
+    cv::Mat watermarked_image = cv::imread(watermarked_output_path, CV_8UC1);
+    cv::Mat extracted_watermark = cv::imread(extracted_output_path, CV_8UC1);
 
     if (watermark_image.empty() || extracted_watermark.empty() || original_image.empty() || watermarked_image.empty()) {
         std::cerr << "Error: One or more images could not be read for metrics calculation." << std::endl;

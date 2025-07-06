@@ -3,9 +3,9 @@
 /**
  * @brief Splits a 512x512 image into 8x8 blocks.
  * 
- * @param image Input image of size 512x512 pixels, type CV_64FC1 (64-bit floating point, single channel).
+ * @param image Input image of size 512x512 pixels, type CV_8UC1.
  * @return std::vector<cv::Mat> A vector containing the 8x8 blocks of the input image.
- * @throws std::runtime_error If the input image is empty, not of size 512x512, or not of type CV_64FC1.
+ * @throws std::runtime_error If the input image is empty, not of size 512x512, or not of type CV_8UC1.
  */
 std::vector<cv::Mat> splitImageInto8x8Blocks(const cv::Mat& image) {
     const int BLOCK_SIZE = 8;
@@ -18,8 +18,8 @@ std::vector<cv::Mat> splitImageInto8x8Blocks(const cv::Mat& image) {
     if(image.rows != IMG_SIZE || image.cols != IMG_SIZE) {
         throw std::runtime_error("Image must be 512x512 pixels");
     }
-    if(image.type() != CV_64FC1) {
-        throw std::runtime_error("Image must be of type CV_64FC1 (64-bit floating point, single channel)");
+    if(image.type() != CV_8UC1) {
+        throw std::runtime_error("Image must be of type CV_8UC1 ");
     }
 
     std::vector<cv::Mat> blocks;
@@ -39,7 +39,7 @@ std::vector<cv::Mat> splitImageInto8x8Blocks(const cv::Mat& image) {
  * @brief Assembles a 512x512 image from 8x8 blocks.
  * 
  * @param blocks A vector containing the 8x8 blocks of the image.
- * @return cv::Mat The reconstructed image of size 512x512 pixels, type CV_64FC1.
+ * @return cv::Mat The reconstructed image of size 512x512 pixels, type CV_8UC1.
  * @throws std::runtime_error If the number of blocks is incorrect or if any block has an invalid size or type.
  */
 cv::Mat assembleImageFrom8x8Blocks(const std::vector<cv::Mat>& blocks) {
@@ -54,7 +54,7 @@ cv::Mat assembleImageFrom8x8Blocks(const std::vector<cv::Mat>& blocks) {
                            std::to_string(blocks.size()));
     }
 
-    cv::Mat image(IMG_SIZE, IMG_SIZE, CV_64FC1, cv::Scalar(0));
+    cv::Mat image(IMG_SIZE, IMG_SIZE, CV_8UC1, cv::Scalar(0));
     
     int block_index = 0;
     for(int y = 0; y < IMG_SIZE; y += BLOCK_SIZE) {
@@ -66,7 +66,7 @@ cv::Mat assembleImageFrom8x8Blocks(const std::vector<cv::Mat>& blocks) {
                                    std::to_string(block.rows) + "x" + 
                                    std::to_string(block.cols));
             }
-            if(block.type() != CV_64FC1) {
+            if(block.type() != CV_8UC1) {
                 throw std::runtime_error("Block " + std::to_string(block_index) + 
                                    " has wrong type");
             }

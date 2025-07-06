@@ -14,8 +14,8 @@ Population::Population(int vector_size, const cv::Mat& block, unsigned char bit)
     if (block.rows != 8 || block.cols != 8) {
         throw std::invalid_argument("Population: block must be 8x8");
     }
-    if (block.type() != CV_64FC1) {
-        throw std::invalid_argument("Population: block must be CV_64FC1 (double)");
+    if (block.type() != CV_8UC1) {
+        throw std::invalid_argument("Population: block must be CV_8UC1");
     }
 
     individuals.resize(population_size, arma::vec(vector_size));
