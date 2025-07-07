@@ -30,8 +30,8 @@ static arma::vec calculate_gsr(double rho2, const arma::vec& best_x, const arma:
     return gsr;
 }
 
-cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit) {
-    Population population(vector_size, block, bit);
+cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int scheme) {
+    Population population(vector_size, block, bit, scheme);
     for (int m = 0; m < GBO::iterations; ++m) {
         double betta = GBO::betta_min + (GBO::betta_max - GBO::betta_min) * std::pow(1.0 - std::pow(static_cast<double>(m + 1) / static_cast<double>(GBO::iterations), 3.0), 2.0);
         double alpha = std::fabs(betta * std::sin(GBO::angle + std::sin(GBO::angle * betta)));
@@ -98,6 +98,6 @@ cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit) {
             
         }
     }
-    cv::Mat result_block = applyVectorToBlock(population.individuals[population.indexOfBestIndividual], block);
+    cv::Mat result_block = applyVectorToBlock(population.individuals[population.indexOfBestIndividual], block, scheme);
     return result_block;
 }

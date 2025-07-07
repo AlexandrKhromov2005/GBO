@@ -7,7 +7,7 @@
     * @param vec Input vector of size 22, containing the values to be applied to the block.
     * @param bit The bit to be used in the fitness calculation (0 or
  */
-Population::Population(int vector_size, const cv::Mat& block, unsigned char bit) : vector_size(vector_size), block(block), bit(bit) {
+Population::Population(int vector_size, const cv::Mat& block, unsigned char bit, int scheme) : vector_size(vector_size), block(block), bit(bit), scheme(scheme) {
     if (block.empty()) {
         throw std::invalid_argument("Population: empty block");
     }
@@ -24,7 +24,7 @@ Population::Population(int vector_size, const cv::Mat& block, unsigned char bit)
     // Initialize the first individual
     individuals[0].randu(vector_size);
     individuals[0] = 2.0 * th * individuals[0] - th;
-    fitness_values[0] = calcFitnessValue(block, individuals[0], bit);
+    fitness_values[0] = calcFitnessValue(block, individuals[0], bit, scheme);
 
     // Set initial best and worst
     indexOfBestIndividual = 0;
@@ -35,7 +35,7 @@ Population::Population(int vector_size, const cv::Mat& block, unsigned char bit)
     for (int i = 1; i < population_size; ++i) {
         individuals[i].randu(vector_size); 
         individuals[i] = 2.0 * th * individuals[i] - th;
-        fitness_values[i] = calcFitnessValue(block, individuals[i], bit);
+        fitness_values[i] = calcFitnessValue(block, individuals[i], bit, scheme);
         if (fitness_values[i] < fitness_values[indexOfBestIndividual]) {
             indexOfBestIndividual = i;
         }
@@ -54,7 +54,7 @@ Population::Population(int vector_size, const cv::Mat& block, unsigned char bit)
  * @param index The index of the individual to be updated.
  */
 void Population::update(arma::vec& vec, int index) {
-    double fitness_value = calcFitnessValue(block, vec, bit);
+    double fitness_value = calcFitnessValue(block, vec, bit, scheme);
     if (fitness_value < fitness_values[index]) {
         individuals[index] = vec;
         fitness_values[index] = fitness_value;

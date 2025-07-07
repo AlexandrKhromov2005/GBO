@@ -17,11 +17,12 @@ public:
     arma::vec worstIndividual;
     double worstFitnessValue;
     unsigned char bit;
+    int scheme;
     std::vector<arma::vec> individuals;
     std::vector<double> fitness_values;
 
     Population() = default;
-    Population(int vector_size, const cv::Mat& block, unsigned char bit);
+    Population(int vector_size, const cv::Mat& block, unsigned char bit, int scheme = 0);
     void update(arma::vec& vec, int index);
     double get_th() const { return th; }
 };

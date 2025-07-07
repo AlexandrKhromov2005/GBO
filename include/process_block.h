@@ -16,11 +16,14 @@ const int jpeg_zigzag[64] = {
 
 arma::vec matToZigzag(const cv::Mat& block);
 cv::Mat zigzagToMat(const arma::vec& zz);
-cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block);
-unsigned char getBitFromBlock(const cv::Mat& block);
-double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned char bit);
+cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block, int scheme = 0);
+unsigned char getBitFromBlock(const cv::Mat& block, int scheme = 0);
+double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned char bit, int scheme = 0);
 double compute_psnr(const cv::Mat& orig, const cv::Mat& test);
 
-const std::vector<int> embeding_region  = {21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42};
-const std::vector<int> s1_region        = {21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41};
-const std::vector<int> s0_region        = {22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42};
+const std::vector<std::vector<int>> embeding_region  = {{21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42},
+                                                        {11, 12, 13, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42}};
+const std::vector<std::vector<int>> s1_region        = {{21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41},
+                                                        {11, 13, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41}};
+const std::vector<std::vector<int>> s0_region        = {{22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42},
+                                                        {12, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42}};

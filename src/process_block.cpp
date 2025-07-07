@@ -55,7 +55,7 @@ double compute_psnr(const cv::Mat& orig, const cv::Mat& test) {
  * @param block Input OpenCV block of size 8x8, type CV_8UC1.
  * @return cv::Mat The modified block after applying the vector, of size 8x8, type CV_8UC1.
  */
-cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block) {
+cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block, int scheme) {
     if (block.empty()) {
         throw std::invalid_argument("applyVectorToBlock: empty block");
     }
@@ -72,9 +72,10 @@ cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block) {
     cv::dct(floatBlock, dctBlock);
     arma::vec zzBlock = matToZigzag(dctBlock);
 
-    for (int i = 0; i < embeding_region.size(); ++i) {
-        double sign = (zzBlock(embeding_region[i]) >= 0.0) ? 1.0 : -1.0;
-        zzBlock(embeding_region[i]) = sign * std::fabs(std::fabs( zzBlock(embeding_region[i])) + vec(i));
+    for (int idx = 0; idx < embeding_region[scheme].size(); ++idx) {
+        int coeff = embeding_region[scheme][idx];
+        double sign = (zzBlock(coeff) >= 0.0) ? 1.0 : -1.0;
+        zzBlock(coeff) = sign * std::fabs(std::fabs(zzBlock(coeff)) + vec(idx));
     }
 
     cv::Mat modifiedBlock = zigzagToMat(zzBlock);
@@ -89,12 +90,12 @@ cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block) {
  * @param block Input OpenCV block of size 8x8, type CV_8UC1.
  * @return unsigned char The extracted bit, either 0 or 1, based on the comparison of sums from two regions.
  */
-unsigned char getBitFromBlock(const cv::Mat& block){
+unsigned char getBitFromBlock(const cv::Mat& block, int scheme){
     cv::Mat dctBlock, floatBlock;
     block.convertTo(floatBlock, CV_64FC1);
     cv::dct(floatBlock, dctBlock);
-    double s1 = getRegionSum(dctBlock, s1_region);
-    double s0 = getRegionSum(dctBlock, s0_region);
+    double s1 = getRegionSum(dctBlock, s1_region[scheme]);
+    double s0 = getRegionSum(dctBlock, s0_region[scheme]);
     return (s1 >= s0) ? 1 : 0;
 }
 
@@ -105,7 +106,7 @@ unsigned char getBitFromBlock(const cv::Mat& block){
  * @param bit The bit to be used in the fitness calculation (0 or 1).
  * @return double The calculated fitness value.
  */
-double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned char bit) {
+double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned char bit, int scheme) {
     if (block.empty()) {
         throw std::invalid_argument("calcFitnessValue: empty block");
     }
@@ -117,15 +118,15 @@ double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned cha
         throw std::invalid_argument("calcFitnessValue: block must be CV_8UC1");
     }
 
-    cv::Mat modifiedBlock = applyVectorToBlock(vec, block);
+    cv::Mat modifiedBlock = applyVectorToBlock(vec, block, scheme);
     cv::Mat modifiedFloatBlock;
     modifiedBlock.convertTo(modifiedFloatBlock, CV_64FC1);
     double psnr = compute_psnr(block, modifiedBlock);
     cv::Mat modifiedBlockDCT;
     cv::dct(modifiedFloatBlock, modifiedBlockDCT);
-    double s1 = getRegionSum(modifiedBlockDCT, s1_region);
+    double s1 = getRegionSum(modifiedBlockDCT, s1_region[scheme]);
     s1 = (s1 > 0.0001) ? s1 : 0.0001;
-    double s0 = getRegionSum(modifiedBlockDCT, s0_region);
+    double s0 = getRegionSum(modifiedBlockDCT, s0_region[scheme]);
     s0 = (s0 > 0.0001) ? s0 : 0.0001;
     return (bit == 0 ? s1 / s0 : s0 / s1) - 0.01 * psnr;
 }

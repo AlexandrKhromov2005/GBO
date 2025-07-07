@@ -1,6 +1,6 @@
 #include "../include/launch.h"
 
-void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path) {
+void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme) {
     cv::Mat image = cv::imread(image_path, CV_8UC1);
     if (image.empty()) {
         throw std::runtime_error("Could not open or find the image: " + image_path);
@@ -18,7 +18,7 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
 
     for (size_t i = 0; i < blocks.size(); ++i) {
         GBO gbo;
-        cv::Mat new_block = gbo.main_loop(blocks[i], 22, watermark_bits[i % watermark_bits.size()]);
+        cv::Mat new_block = gbo.main_loop(blocks[i], 22, watermark_bits[i % watermark_bits.size()], scheme);
         new_blocks.push_back(new_block);
     }
 
@@ -27,7 +27,7 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
     cv::imwrite(output_path, result_image);
 }
 
-void extractWatermark(std::string watermarked_image_path, std::string extracted_watermark_path) {
+void extractWatermark(std::string watermarked_image_path, std::string extracted_watermark_path, int scheme) {
     cv::Mat watermarked_image = cv::imread(watermarked_image_path, CV_8UC1);
     if (watermarked_image.empty()) {
         throw std::runtime_error("Could not open or find the watermarked image: " + watermarked_image_path);
@@ -37,7 +37,7 @@ void extractWatermark(std::string watermarked_image_path, std::string extracted_
     std::vector<cv::Mat> blocks = splitImageInto8x8Blocks(watermarked_image);
     std::vector<unsigned char> extracted_bits(1024, 0);
     for (size_t i = 0; i < blocks.size(); ++i) {
-        unsigned char bit = getBitFromBlock(blocks[i]);
+        unsigned char bit = getBitFromBlock(blocks[i], scheme);
         extracted_bits[i % 1024] += bit;
     }
 
@@ -59,17 +59,18 @@ void extractWatermark(std::string watermarked_image_path, std::string extracted_
 void launchGBO(const std::string& image_path,
                const std::string& watermark_path,
                const std::string& watermarked_output_path,
-               const std::string& extracted_output_path){
+               const std::string& extracted_output_path,
+               int scheme){
 
     try {
-        embedWatermark(image_path, watermark_path, watermarked_output_path);
+        embedWatermark(image_path, watermark_path, watermarked_output_path, scheme);
         std::cout << "Watermark embedded successfully." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error embedding watermark: " << e.what() << std::endl;
     }
 
     try {
-        extractWatermark(watermarked_output_path, extracted_output_path);
+        extractWatermark(watermarked_output_path, extracted_output_path, scheme);
         std::cout << "Watermark extracted successfully." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error extracting watermark: " << e.what() << std::endl;
