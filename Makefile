@@ -31,7 +31,7 @@ rm_images:
 		! -name 'earth_from_space.png' \
 		! -name 'lake.png' \
 		! -name 'lenna.png' \
-		! -name 'peppers.png' \
+		! -name 'pepper.png' \
 		! -name 'watermark.png' \
 		-exec rm -v {} \;
 
