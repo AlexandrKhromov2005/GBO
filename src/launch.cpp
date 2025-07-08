@@ -1,4 +1,6 @@
 #include "../include/launch.h"
+#include "../include/attacks.h"
+#include <filesystem>
 
 void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme) {
     cv::Mat image = cv::imread(image_path, CV_8UC1);
@@ -69,34 +71,105 @@ void launchGBO(const std::string& image_path,
         std::cerr << "Error embedding watermark: " << e.what() << std::endl;
     }
 
+    // ------------------ BASELINE (без атаки) ------------------
+    std::string extracted_noattack_path = "images/extracted_no_attack.png";
     try {
-        extractWatermark(watermarked_output_path, extracted_output_path, scheme);
-        std::cout << "Watermark extracted successfully." << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error extracting watermark: " << e.what() << std::endl;
+        extractWatermark(watermarked_output_path, extracted_noattack_path, scheme);
+    } catch (const std::exception &e) {
+        std::cerr << "Error extracting baseline watermark: " << e.what() << std::endl;
     }
 
-    //Calculation of metrics
     cv::Mat original_image = cv::imread(image_path, CV_8UC1);
     cv::Mat watermark_image = cv::imread(watermark_path, CV_8UC1);
     cv::Mat watermarked_image = cv::imread(watermarked_output_path, CV_8UC1);
-    cv::Mat extracted_watermark = cv::imread(extracted_output_path, CV_8UC1);
+    cv::Mat extracted_noattack = cv::imread(extracted_noattack_path, CV_8UC1);
 
-    if (watermark_image.empty() || extracted_watermark.empty() || original_image.empty() || watermarked_image.empty()) {
-        std::cerr << "Error: One or more images could not be read for metrics calculation." << std::endl;
+    if (watermark_image.empty() || extracted_noattack.empty() || original_image.empty() || watermarked_image.empty()) {
+        std::cerr << "Error: images could not be read for baseline metric calculation." << std::endl;
         return;
     }
 
-    double ber = computeBER(extract_watermark_bits(watermark_image), extract_watermark_bits(extracted_watermark));
-    double psnr = computePSNR(original_image, watermarked_image);
-    double ssim = computeSSIM(original_image, watermarked_image);
-    double ncc = computeNCC(original_image, watermarked_image);
-    double mse = computeMSE(original_image, watermarked_image);
-    std::cout << "Metrics:" << std::endl;
-    std::cout << "BER: " << ber << std::endl;
-    std::cout << "PSNR: " << psnr << std::endl;
-    std::cout << "SSIM: " << ssim << std::endl;
-    std::cout << "NCC: " << ncc << std::endl;
-    std::cout << "MSE: " << mse << std::endl;
+    std::cout << "\n========== METRICS ==========" << std::endl;
+    auto printMetrics = [](const std::string &title, double ber, double psnr, double ssim, double ncc, double mse) {
+        std::cout << "\n" << title << std::endl;
+        std::cout << "BER : " << ber << std::endl;
+        std::cout << "PSNR: " << psnr << std::endl;
+        std::cout << "SSIM: " << ssim << std::endl;
+        std::cout << "NCC : " << ncc << std::endl;
+        std::cout << "MSE : " << mse << std::endl;
+    };
+
+    double ber_base  = computeBER(extract_watermark_bits(watermark_image), extract_watermark_bits(extracted_noattack));
+    double psnr_base = computePSNR(original_image, watermarked_image);
+    double ssim_base = computeSSIM(original_image, watermarked_image);
+    double ncc_base  = computeNCC(original_image, watermarked_image);
+    double mse_base  = computeMSE(original_image, watermarked_image);
+    printMetrics("NO ATTACK", ber_base, psnr_base, ssim_base, ncc_base, mse_base);
+
+    // ------------------ СПИСОК АТАК ------------------
+    cv::Mat wm_img_gray = watermarked_image; // already CV_8UC1
+
+    struct AttackInfo {
+        std::string name;
+        cv::Mat (*func)(const cv::Mat &, double);
+        double param;
+    };
+
+    std::vector<AttackInfo> attacks = {
+        {"Brightness +30", [](const cv::Mat &img, double v){return brightnessIncrease(img, static_cast<int>(v));}, 30},
+        {"Brightness -30", [](const cv::Mat &img, double v){return brightnessDecrease(img, static_cast<int>(v));}, 30},
+        {"Contrast *1.2",   [](const cv::Mat &img, double v){return contrastIncrease(img, v);}, 1.2},
+        {"Contrast *0.8",   [](const cv::Mat &img, double v){return contrastDecrease(img, v);}, 0.8},
+        {"Salt&Pepper 5%", [](const cv::Mat &img, double v){return saltPepperNoise(img, v);}, 0.05},
+        {"Speckle 20",      [](const cv::Mat &img, double v){return speckleNoise(img, v);}, 20},
+        {"Histogram Eq",    [](const cv::Mat &img, double){return histogramEqualization(img);}, 0},
+        {"Sharpen",         [](const cv::Mat &img, double){return sharpening(img);}, 0},
+        {"JPEG q=70",       [](const cv::Mat &img, double v){return jpegCompression(img, static_cast<int>(v));}, 70},
+        {"JPEG q=80",       [](const cv::Mat &img, double v){return jpegCompression(img, static_cast<int>(v));}, 80},
+        {"JPEG q=90",       [](const cv::Mat &img, double v){return jpegCompression(img, static_cast<int>(v));}, 90},
+        {"Gaussian k=3",    [](const cv::Mat &img, double v){return gaussianFiltering(img, static_cast<int>(v));}, 3},
+        {"Median k=3",      [](const cv::Mat &img, double v){return medianFiltering(img, static_cast<int>(v));}, 3},
+        {"Average k=3",     [](const cv::Mat &img, double v){return averageFiltering(img, static_cast<int>(v));}, 3}
+    };
+
+    auto sanitize = [](std::string s){
+        for (char &c : s) {
+            if (!std::isalnum(static_cast<unsigned char>(c))) c = '_';
+        }
+        return s;
+    };
+
+    namespace fs = std::filesystem;
+    fs::path img_path(image_path);
+    std::string stem = img_path.stem().string();
+
+    for (const auto &atk : attacks) {
+        cv::Mat attacked = atk.func(wm_img_gray, atk.param);
+        std::string attack_name_sanitized = sanitize(atk.name);
+        std::string tmp_attack_path = (img_path.parent_path() / (stem + "_" + attack_name_sanitized + ".png")).string();
+        std::string tmp_extr_path   = (img_path.parent_path() / ("watermark_" + stem + "_" + attack_name_sanitized + ".png")).string();
+        cv::imwrite(tmp_attack_path, attacked);
+
+        try {
+            extractWatermark(tmp_attack_path, tmp_extr_path, scheme);
+        } catch (const std::exception &e) {
+            std::cerr << "Error extracting watermark after " << atk.name << ": " << e.what() << std::endl;
+            continue;
+        }
+
+        cv::Mat extracted_wm = cv::imread(tmp_extr_path, CV_8UC1);
+        if (extracted_wm.empty()) {
+            std::cerr << "Could not read extracted watermark for " << atk.name << std::endl;
+            continue;
+        }
+
+        double ber  = computeBER(extract_watermark_bits(watermark_image), extract_watermark_bits(extracted_wm));
+        double psnr = computePSNR(original_image, attacked);
+        double ssim = computeSSIM(original_image, attacked);
+        double ncc  = computeNCC(original_image, attacked);
+        double mse  = computeMSE(original_image, attacked);
+        printMetrics(atk.name, ber, psnr, ssim, ncc, mse);
+
+    }
 
 }
