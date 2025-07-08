@@ -7,14 +7,14 @@
 const int amount_of_schemes = 2;
 
 const std::vector<std::string> images = {
-    "images/airplane.png"/*,
+    "images/airplane.png",
     "images/baboon.png",
     "images/boat.png",
     "images/bridge.png",
     "images/earth_from_space.png",
     "images/lake.png",
     "images/lenna.png",
-    "images/pepper.png"*/
+    "images/pepper.png"
 };
     
 /**

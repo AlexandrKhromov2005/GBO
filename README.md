@@ -85,3 +85,34 @@ The helper `launchGBO` now receives **all** file paths as parameters (image, wat
    cd /usr/src/googletest && sudo cmake . && sudo make install
    ```
 3. **Image paths invalid** – ensure the `images/` directory exists and contains the specified files.
+
+---
+
+## 7. Customizing the dataset
+
+### Adding new images
+Add image file names to `include/dataset_builder.h` inside the `images` vector:
+```cpp
+const std::vector<std::string> images = {
+    "images/airplane.png",
+    // ... existing entries ...
+    "images/your_new_image.png"
+};
+```
+Put the actual image files in the `images/` directory so the paths remain valid.
+
+### Adding or removing attacks
+Edit `src/dataset_builder.cpp` and adjust the constant `attacks` vector located near the top of the file:
+```cpp
+const std::vector<AttackType> attacks = {
+    AttackType::ContrastIncrease,
+    AttackType::JPEGCompression,
+    // AttackType::YourNewAttack,
+};
+```
+The program will generate additional copies of each image using every attack in this list.
+
+After editing, rebuild the project and regenerate the dataset:
+```bash
+make clean && make build_dataset
+```

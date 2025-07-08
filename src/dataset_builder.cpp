@@ -97,6 +97,7 @@ struct BSB { // Block, Scheme and Bit
 #include <iomanip>
 #include <filesystem>
 #include <random>
+#include <unordered_map>
 
 void buildDataset() {
 size_t total_blocks_estimate = 0;
@@ -109,6 +110,7 @@ for (const auto& img_path : images) {
 }
 size_t processed_blocks = 0;
 std::vector<size_t> scheme_counts(amount_of_schemes, 0);
+std::unordered_map<std::string, int> multi_nums; 
 
 int image_index = 0;
 for (auto& image : images) {
@@ -158,16 +160,24 @@ for (auto& image : images) {
                     min_indices.push_back(idx);
                 }
             }
-            // Randomly select one of the schemes with the minimal number of errors
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dis(0, static_cast<int>(min_indices.size()) - 1);
-            int min_index = min_indices[dis(gen)];
 
-            std::string name_of_dir = "dataset/scheme_" + std::to_string(min_index) + "/block_" + std::to_string(nums[min_index]) + ".png";
-            nums[min_index]++;
-            scheme_counts[min_index]++;
-            std::filesystem::create_directories("dataset/scheme_" + std::to_string(min_index));
+            std::string dir_name = "scheme_";
+            for (size_t k = 0; k < min_indices.size(); ++k) {
+                dir_name += std::to_string(min_indices[k]);
+                if (k + 1 < min_indices.size()) dir_name += "_";
+            }
+
+            int block_num;
+            if (min_indices.size() == 1) {
+                int single_idx = min_indices[0];
+                block_num = nums[single_idx]++;
+                scheme_counts[single_idx]++;
+            } else {
+                block_num = multi_nums[dir_name]++;
+            }
+
+            std::filesystem::create_directories("dataset/" + dir_name);
+            std::string name_of_dir = "dataset/" + dir_name + "/block_" + std::to_string(block_num) + ".png";
             cv::imwrite(name_of_dir, sets_of_blocks[0][i].block);
 
             processed_blocks++;
@@ -176,9 +186,14 @@ for (auto& image : images) {
 
         }
 
-    std::cout << "\n\nDataset building complete. Blocks per scheme:" << std::endl;
+    std::cout << "\n\nDataset building complete. Blocks per folder:" << std::endl;
+    // Single-scheme folders
     for (int i = 0; i < amount_of_schemes; ++i) {
-        std::cout << "  Scheme " << i << ": " << scheme_counts[i] << " blocks" << std::endl;
+        std::cout << "  scheme_" << i << ": " << scheme_counts[i] << " blocks" << std::endl;
+    }
+    // Multi-scheme folders
+    for (const auto &kv : multi_nums) {
+        std::cout << "  " << kv.first << ": " << kv.second << " blocks" << std::endl;
     }
 
     }
