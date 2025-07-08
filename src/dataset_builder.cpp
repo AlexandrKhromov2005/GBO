@@ -96,6 +96,7 @@ struct BSB { // Block, Scheme and Bit
 #include <iostream>
 #include <iomanip>
 #include <filesystem>
+#include <random>
 
 void buildDataset() {
 size_t total_blocks_estimate = 0;
@@ -150,8 +151,18 @@ for (auto& image : images) {
                 unsigned char bit = getBitFromBlock(s[i].block, s[i].scheme);
                 if (bit != s[i].bit) errors[s[i].scheme]++; 
             }
-            auto min_el = std::min_element(errors.begin(), errors.end());
-            int min_index = std::distance(errors.begin(), min_el);
+            int min_error = *std::min_element(errors.begin(), errors.end());
+            std::vector<int> min_indices;
+            for (int idx = 0; idx < errors.size(); ++idx) {
+                if (errors[idx] == min_error) {
+                    min_indices.push_back(idx);
+                }
+            }
+            // Randomly select one of the schemes with the minimal number of errors
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dis(0, static_cast<int>(min_indices.size()) - 1);
+            int min_index = min_indices[dis(gen)];
 
             std::string name_of_dir = "dataset/scheme_" + std::to_string(min_index) + "/block_" + std::to_string(nums[min_index]) + ".png";
             nums[min_index]++;
