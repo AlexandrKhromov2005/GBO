@@ -110,9 +110,4 @@ const std::vector<AttackType> attacks = {
     // AttackType::YourNewAttack,
 };
 ```
-The program will generate additional copies of each image using every attack in this list.
 
-After editing, rebuild the project and regenerate the dataset:
-```bash
-make clean && make build_dataset
-```
