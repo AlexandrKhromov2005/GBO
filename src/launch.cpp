@@ -147,7 +147,7 @@ void launchGBO(const std::string& image_path,
         cv::Mat attacked = atk.func(wm_img_gray, atk.param);
         std::string attack_name_sanitized = sanitize(atk.name);
         std::string tmp_attack_path = (img_path.parent_path() / (stem + "_" + attack_name_sanitized + ".png")).string();
-        std::string tmp_extr_path   = (img_path.parent_path() / ("watermark_" + stem + "_" + attack_name_sanitized + ".png")).string();
+        std::string tmp_extr_path   = (img_path.parent_path() / ("extracted_watermark_" + stem + "_" + attack_name_sanitized + ".png")).string();
         cv::imwrite(tmp_attack_path, attacked);
 
         try {

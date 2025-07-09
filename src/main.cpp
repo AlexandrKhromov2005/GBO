@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
     }
 
     int scheme = 0;
-    std::string image_path = "images/airplane.png"; 
+    std::string image_path = "images/pepper.png"; 
     std::string watermark_path = "images/watermark.png";
     try {
         launchGBO(image_path, watermark_path, scheme);

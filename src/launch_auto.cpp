@@ -11,7 +11,7 @@ void launchGBO(const std::string& image_path,
 
     // Output paths reside in same directory as source image
     std::string watermarked_output_path = (img_path.parent_path() / ("watermarked_" + stem + img_path.extension().string())).string();
-    std::string extracted_output_path  = (img_path.parent_path() / ("watermark_" + stem + "_no_attack.png")).string();
+    std::string extracted_output_path  = (img_path.parent_path() / ("extracted_watermark_" + stem + "_no_attack.png")).string();
 
     launchGBO(image_path, watermark_path, watermarked_output_path, extracted_output_path, scheme);
 }
