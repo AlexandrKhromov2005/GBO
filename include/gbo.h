@@ -16,5 +16,5 @@ public:
     GBO() = default;
     Population population;
     double th = population.get_th();
-    cv::Mat main_loop(cv::Mat& block, int vector_size, unsigned char bit, int scheme = 0);
+    cv::Mat main_loop(cv::Mat& block, int vector_size, unsigned char bit, int scheme = 0, bool verbose = false);
 };

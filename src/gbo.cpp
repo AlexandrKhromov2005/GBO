@@ -1,4 +1,5 @@
 #include "gbo.h"
+#include <iostream>
 
 
 static arma::vec calculate_gsr(double rho2, const arma::vec& best_x, const arma::vec& worst_x, const arma::vec& current_x, const arma::vec& xr1, const arma::vec& dm, const arma::vec& xm, unsigned char flag, int N){
@@ -30,7 +31,7 @@ static arma::vec calculate_gsr(double rho2, const arma::vec& best_x, const arma:
     return gsr;
 }
 
-cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int scheme) {
+cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int scheme, bool verbose) {
     Population population(vector_size, block, bit, scheme);
     for (int m = 0; m < GBO::iterations; ++m) {
         double betta = GBO::betta_min + (GBO::betta_max - GBO::betta_min) * std::pow(1.0 - std::pow(static_cast<double>(m + 1) / static_cast<double>(GBO::iterations), 3.0), 2.0);
@@ -96,6 +97,10 @@ cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int s
 
             population.update(x_next, current_vector);
             
+        }
+        if (verbose) {
+            std::cout << "Iteration " << m + 1 << " best fitness = "
+                      << population.fitness_values[population.indexOfBestIndividual] << std::endl;
         }
     }
     cv::Mat result_block = applyVectorToBlock(population.individuals[population.indexOfBestIndividual], block, scheme);

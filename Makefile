@@ -1,7 +1,7 @@
 BUILD_DIR := build
 EXECUTABLE := main
 
-.PHONY: all run test clean rm_images clear_dataset build_dataset help
+.PHONY: all run test clean rm_images clear_dataset build_dataset help total_clean
 
 all: $(BUILD_DIR)/$(EXECUTABLE)
 
@@ -54,3 +54,8 @@ help:
 	@echo "  clear_dataset - Clear the dataset directory"
 	@echo "  build_dataset - Build the dataset"
 	@echo "  help         - Show this help message"
+	@echo "  total_clean  - Clean everything including images and dataset"
+
+total_clean: clean rm_images clear_dataset
+	@echo "Total clean completed."
+	@echo "All temporary files and directories have been removed."

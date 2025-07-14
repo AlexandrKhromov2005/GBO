@@ -57,6 +57,37 @@ void extractWatermark(std::string watermarked_image_path, std::string extracted_
     cv::imwrite(extracted_watermark_path, extracted_watermark);
 }
 
+// New: run GBO for a single 8x8 block and print fitness evolution
+void launchSingleBlockGBO(const std::string& image_path,
+                          const std::string& watermark_path,
+                          int scheme){
+    try {
+        cv::Mat image = cv::imread(image_path, CV_8UC1);
+        if (image.empty()) {
+            throw std::runtime_error("Could not open or find the image: " + image_path);
+        }
+        cv::Mat watermark = cv::imread(watermark_path, CV_8UC1);
+        if (watermark.empty()) {
+            throw std::runtime_error("Could not open or find the watermark: " + watermark_path);
+        }
+        // Use first block (top-left 8x8) as example
+        cv::Rect roi(0,0,8,8);
+        cv::Mat block = image(roi).clone();
+
+        // Extract first watermark bit as target bit
+        std::vector<unsigned char> wm_bits = extract_watermark_bits(watermark);
+        unsigned char bit = wm_bits.empty() ? 0 : wm_bits[0];
+
+        std::cout << "Running GBO for single 8x8 block (scheme=" << scheme << ")" << std::endl;
+        GBO gbo;
+        // Verbose flag prints fitness after every iteration
+        cv::Mat new_block = gbo.main_loop(block, 22, bit, scheme, true);
+        (void)new_block; // suppress unused warning
+
+    } catch(const std::exception& e){
+        std::cerr << "launchSingleBlockGBO error: " << e.what() << std::endl;
+    }
+}
 
 void launchGBO(const std::string& image_path,
                const std::string& watermark_path,

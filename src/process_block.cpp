@@ -1,14 +1,14 @@
 #include "../include/process_block.h"
 
+
 arma::vec matToZigzag(const cv::Mat& block) {
     CV_Assert(!block.empty() && block.rows == 8 && block.cols == 8 && block.type() == CV_64FC1);
 
     arma::vec zz = arma::zeros<arma::vec>(64);
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            int zigzagIndex = jpeg_zigzag[i * 8 + j];
-            zz(zigzagIndex) = block.at<double>(i, j);
-        }
+    for (int k = 0; k < 64; ++k) {
+        int i = jpeg_zigzag[k] / 8;
+        int j = jpeg_zigzag[k] % 8;
+        zz(k) = block.at<double>(i, j);
     }
     return zz;
 }
@@ -16,12 +16,11 @@ arma::vec matToZigzag(const cv::Mat& block) {
 cv::Mat zigzagToMat(const arma::vec& zz) {
     CV_Assert(zz.n_elem == 64);
 
-    cv::Mat block(8, 8, CV_64FC1);
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            int zigzagIndex = jpeg_zigzag[i * 8 + j];
-            block.at<double>(i, j) = zz(zigzagIndex);
-        }
+    cv::Mat block(8, 8, CV_64FC1, cv::Scalar(0));
+    for (int k = 0; k < 64; ++k) {
+        int i = jpeg_zigzag[k] / 8;
+        int j = jpeg_zigzag[k] % 8;
+        block.at<double>(i, j) = zz(k);
     }
     return block;
 }
@@ -32,7 +31,7 @@ double getRegionSum(const cv::Mat& block, std::vector<int> region) {
     for (int i : region) {
         sum += std::fabs(zzBlock(i));
     }
-    return sum;
+    return sum > 0.001 ? sum : 0.001; // Avoid division by zero
 }
 
 double compute_psnr(const cv::Mat& orig, const cv::Mat& test) {
@@ -125,8 +124,6 @@ double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned cha
     cv::Mat modifiedBlockDCT;
     cv::dct(modifiedFloatBlock, modifiedBlockDCT);
     double s1 = getRegionSum(modifiedBlockDCT, s1_region[scheme]);
-    s1 = (s1 > 0.0001) ? s1 : 0.0001;
     double s0 = getRegionSum(modifiedBlockDCT, s0_region[scheme]);
-    s0 = (s0 > 0.0001) ? s0 : 0.0001;
     return (bit == 0 ? s1 / s0 : s0 / s1) - 0.01 * psnr;
 }
