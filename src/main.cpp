@@ -10,6 +10,7 @@
 #include <limits>
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 
 struct MetricResult {
     double ber;
@@ -151,7 +152,14 @@ int main(int argc, char* argv[]) {
 
                     agg.try_emplace(atk.name, MetricAgg());
                     agg[atk.name].update(m);
+
+                    // remove temp attack files
+                    std::filesystem::remove(attack_img_path);
+                    std::filesystem::remove(extracted_wm_path);
                 }
+            // remove temp baseline files
+                std::filesystem::remove(wm_out);
+                std::filesystem::remove(ext_base);
             }
 
             std::cout << "\n====== AGGREGATED RESULTS OVER " << trials << " RUNS ======" << std::endl;

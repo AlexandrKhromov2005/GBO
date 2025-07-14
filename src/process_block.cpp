@@ -35,18 +35,23 @@ double getRegionSum(const cv::Mat& block, std::vector<int> region) {
 }
 
 double compute_psnr(const cv::Mat& orig, const cv::Mat& test) {
-    cv::Mat diff;
-    cv::absdiff(orig, test, diff);
-    diff = diff.mul(diff); 
+    cv::Mat orig_f, test_f;
+    orig.convertTo(orig_f, CV_32F);
+    test.convertTo(test_f, CV_32F);
 
-    double mse = cv::sum(diff)[0] / 64.0;
+    cv::Mat diff;
+    cv::absdiff(orig_f, test_f, diff);
+    diff = diff.mul(diff);
+
+    double mse = cv::sum(diff)[0] / (orig.total()); 
     if (mse == 0.0) {
-        return 100.0; 
+        return 100.0;
     }
 
     const double MAX_I = 255.0;
     return 10.0 * std::log10((MAX_I * MAX_I) / mse);
 }
+
 
 /**
  * @brief Applies a vector to an 8x8 block using DCT and zigzag transformation.
