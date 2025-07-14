@@ -33,6 +33,17 @@ static arma::vec calculate_gsr(double rho2, const arma::vec& best_x, const arma:
 
 cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int scheme, bool verbose) {
     Population population(vector_size, block, bit, scheme);
+    if (verbose) {
+        std::cout << "Initial population (size=" << population.individuals.size() << ")" << std::endl;
+        for (size_t idx = 0; idx < population.individuals.size(); ++idx) {
+            std::cout << "Ind " << idx << " fitness=" << population.fitness_values[idx] << " : ";
+            for (size_t j = 0; j < population.individuals[idx].n_elem; ++j) {
+                std::cout << population.individuals[idx](j);
+                if (j + 1 < population.individuals[idx].n_elem) std::cout << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
     for (int m = 0; m < GBO::iterations; ++m) {
         double betta = GBO::betta_min + (GBO::betta_max - GBO::betta_min) * std::pow(1.0 - std::pow(static_cast<double>(m + 1) / static_cast<double>(GBO::iterations), 3.0), 2.0);
         double alpha = std::fabs(betta * std::sin(GBO::angle + std::sin(GBO::angle * betta)));
@@ -104,5 +115,19 @@ cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int s
         }
     }
     cv::Mat result_block = applyVectorToBlock(population.individuals[population.indexOfBestIndividual], block, scheme);
+
+    if (verbose) {
+        int changed_px = cv::countNonZero(block != result_block);
+        double psnr_final = compute_psnr(block, result_block);
+        const arma::vec &best_vec = population.individuals[population.indexOfBestIndividual];
+        double vec_norm = arma::norm(best_vec, 2);
+        double vec_max = best_vec.max();
+        double vec_min = best_vec.min();
+        std::cout << "[DEBUG] main_loop summary: changed_px=" << changed_px
+                  << " psnr_final=" << psnr_final
+                  << " vec_norm=" << vec_norm
+                  << " vec_min=" << vec_min
+                  << " vec_max=" << vec_max << std::endl;
+    }
     return result_block;
 }

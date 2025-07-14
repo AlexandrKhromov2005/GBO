@@ -1,8 +1,9 @@
 #include "../include/launch.h"
 #include "../include/attacks.h"
 #include <filesystem>
+#include "../include/process_block.h"
 
-void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme) {
+void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme, bool debug, bool traceUnchanged) {
     cv::Mat image = cv::imread(image_path, CV_8UC1);
     if (image.empty()) {
         throw std::runtime_error("Could not open or find the image: " + image_path);
@@ -20,7 +21,77 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
 
     for (size_t i = 0; i < blocks.size(); ++i) {
         GBO gbo;
-        cv::Mat new_block = gbo.main_loop(blocks[i], 22, watermark_bits[i % watermark_bits.size()], scheme);
+        unsigned char target_bit = watermark_bits[i % watermark_bits.size()];
+        cv::Mat new_block = gbo.main_loop(blocks[i], 22, target_bit, scheme);
+        // Debug: verify embedding success
+        if (debug || traceUnchanged) {
+            unsigned char extracted_bit = getBitFromBlock(new_block, scheme);
+            bool identical = cv::countNonZero(blocks[i] != new_block) == 0;
+            if (identical && traceUnchanged) {
+                // Block was not modified at all
+                cv::Mat floatOld;
+                blocks[i].convertTo(floatOld, CV_64FC1);
+                cv::Mat dctOld;
+                cv::dct(floatOld, dctOld);
+                double s1_old = getRegionSum(dctOld, s1_region[scheme]);
+                double s0_old = getRegionSum(dctOld, s0_region[scheme]);
+
+                // For consistency compute PSNR (will be high if identical)
+                double psnr_val = compute_psnr(blocks[i], new_block);
+
+                std::cout << "[DEBUG] Unchanged block " << i
+                          << " bit=" << static_cast<int>(target_bit)
+                          << " s1=" << s1_old << " s0=" << s0_old
+                          << " psnr=" << psnr_val << std::endl;
+
+                // Additionally run GBO with verbose to trace fitness evolution
+                std::cout << "[DEBUG] Fitness evolution for block " << i << std::endl;
+                GBO gbo_trace;
+                cv::Mat traced_block = gbo_trace.main_loop(blocks[i], 22, target_bit, scheme, true);
+
+                // Compute region sums after GBO attempt
+                cv::Mat tracedFloat;
+                traced_block.convertTo(tracedFloat, CV_64FC1);
+                cv::Mat dctTraced;
+                cv::dct(tracedFloat, dctTraced);
+                double s1_traced = getRegionSum(dctTraced, s1_region[scheme]);
+                double s0_traced = getRegionSum(dctTraced, s0_region[scheme]);
+
+                double psnr_after = compute_psnr(blocks[i], traced_block);
+                std::cout << "[DEBUG] After GBO: new_s1=" << s1_traced << " new_s0=" << s0_traced
+                          << " psnr_after=" << psnr_after << std::endl;
+
+                std::cout << "[DEBUG] Trace complete. Exiting." << std::endl;
+                std::exit(0);
+            }
+            if (!identical && debug && extracted_bit != target_bit) {
+                // Compute old region sums
+                cv::Mat oldFloat;
+                blocks[i].convertTo(oldFloat, CV_64FC1);
+                cv::Mat dctOld;
+                cv::dct(oldFloat, dctOld);
+                double s1_old = getRegionSum(dctOld, s1_region[scheme]);
+                double s0_old = getRegionSum(dctOld, s0_region[scheme]);
+
+                // Compute new region sums
+                cv::Mat newFloat;
+                new_block.convertTo(newFloat, CV_64FC1);
+                cv::Mat dctNew;
+                cv::dct(newFloat, dctNew);
+                double s1_new = getRegionSum(dctNew, s1_region[scheme]);
+                double s0_new = getRegionSum(dctNew, s0_region[scheme]);
+
+                // Compute PSNR between original and modified block
+                double psnr_val = compute_psnr(blocks[i], new_block);
+
+                std::cout << "[DEBUG] Mismatch at block " << i
+                          << " target=" << static_cast<int>(target_bit)
+                          << " extracted=" << static_cast<int>(extracted_bit)
+                          << " old_s1=" << s1_old << " old_s0=" << s0_old
+                          << " new_s1=" << s1_new << " new_s0=" << s0_new
+                          << " psnr=" << psnr_val << std::endl;
+            }
+        }
         new_blocks.push_back(new_block);
     }
 
@@ -93,10 +164,12 @@ void launchGBO(const std::string& image_path,
                const std::string& watermark_path,
                const std::string& watermarked_output_path,
                const std::string& extracted_output_path,
-               int scheme){
+               int scheme,
+               bool debug,
+               bool traceUnchanged) {
 
     try {
-        embedWatermark(image_path, watermark_path, watermarked_output_path, scheme);
+        embedWatermark(image_path, watermark_path, watermarked_output_path, scheme, debug, traceUnchanged);
         std::cout << "Watermark embedded successfully." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error embedding watermark: " << e.what() << std::endl;

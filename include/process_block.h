@@ -20,6 +20,7 @@ cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block, int schem
 unsigned char getBitFromBlock(const cv::Mat& block, int scheme = 0);
 double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned char bit, int scheme = 0);
 double compute_psnr(const cv::Mat& orig, const cv::Mat& test);
+double getRegionSum(const cv::Mat& dctBlock, std::vector<int> region);
 
 const std::vector<std::vector<int>> embeding_region  = {{21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42},
                                                         {11, 12, 13, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42}};
