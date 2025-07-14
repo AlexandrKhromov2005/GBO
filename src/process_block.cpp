@@ -35,9 +35,9 @@ double getRegionSum(const cv::Mat& block, std::vector<int> region) {
 }
 
 double compute_psnr(const cv::Mat& orig, const cv::Mat& test) {
-    cv::Mat orig_f, test_f;
-    orig.convertTo(orig_f, CV_32F);
-    test.convertTo(test_f, CV_32F);
+    cv::Mat orig_f(8, 8, CV_64FC1), test_f(8, 8, CV_64FC1);
+    orig.convertTo(orig_f, CV_64FC1);
+    test.convertTo(test_f, CV_64FC1);
 
     cv::Mat diff;
     cv::absdiff(orig_f, test_f, diff);
@@ -70,9 +70,9 @@ cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block, int schem
     if (block.type() != CV_8UC1) {
         throw std::invalid_argument("applyVectorToBlock: block must be CV_8UC1");
     }
-    cv::Mat floatBlock;
+    cv::Mat floatBlock(8, 8, CV_64FC1);
     block.convertTo(floatBlock, CV_64FC1); 
-    cv::Mat dctBlock;
+    cv::Mat dctBlock(8, 8, CV_64FC1);
     cv::dct(floatBlock, dctBlock);
     arma::vec zzBlock = matToZigzag(dctBlock);
 
@@ -84,7 +84,7 @@ cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block, int schem
 
     cv::Mat modifiedBlock = zigzagToMat(zzBlock);
     cv::dct(modifiedBlock, modifiedBlock, cv::DCT_INVERSE);
-    cv::Mat modifiedBlock8U;
+    cv::Mat modifiedBlock8U(8, 8, CV_8UC1);
     modifiedBlock.convertTo(modifiedBlock8U, CV_8UC1);
     return modifiedBlock8U;
 }
@@ -95,7 +95,7 @@ cv::Mat applyVectorToBlock(const arma::vec& vec, const cv::Mat& block, int schem
  * @return unsigned char The extracted bit, either 0 or 1, based on the comparison of sums from two regions.
  */
 unsigned char getBitFromBlock(const cv::Mat& block, int scheme){
-    cv::Mat dctBlock, floatBlock;
+    cv::Mat dctBlock(8, 8, CV_64FC1), floatBlock(8, 8, CV_64FC1);
     block.convertTo(floatBlock, CV_64FC1);
     cv::dct(floatBlock, dctBlock);
     double s1 = getRegionSum(dctBlock, s1_region[scheme]);
@@ -123,10 +123,10 @@ double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned cha
     }
 
     cv::Mat modifiedBlock = applyVectorToBlock(vec, block, scheme);
-    cv::Mat modifiedFloatBlock;
+    cv::Mat modifiedFloatBlock(8, 8, CV_64FC1);
     modifiedBlock.convertTo(modifiedFloatBlock, CV_64FC1);
     double psnr = compute_psnr(block, modifiedBlock);
-    cv::Mat modifiedBlockDCT;
+    cv::Mat modifiedBlockDCT(8, 8, CV_64FC1);
     cv::dct(modifiedFloatBlock, modifiedBlockDCT);
     double s1 = getRegionSum(modifiedBlockDCT, s1_region[scheme]);
     double s0 = getRegionSum(modifiedBlockDCT, s0_region[scheme]);
