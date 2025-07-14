@@ -3,7 +3,7 @@
 #include <filesystem>
 #include "../include/process_block.h"
 
-void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme, bool debug, bool traceUnchanged) {
+void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme, bool debug, bool traceUnchanged, bool traceFailed) {
     cv::Mat image = cv::imread(image_path, CV_8UC1);
     if (image.empty()) {
         throw std::runtime_error("Could not open or find the image: " + image_path);
@@ -24,7 +24,7 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
         unsigned char target_bit = watermark_bits[i % watermark_bits.size()];
         cv::Mat new_block = gbo.main_loop(blocks[i], 22, target_bit, scheme);
         // Debug: verify embedding success
-        if (debug || traceUnchanged) {
+        if (debug || traceUnchanged || traceFailed) {
             unsigned char extracted_bit = getBitFromBlock(new_block, scheme);
             bool identical = cv::countNonZero(blocks[i] != new_block) == 0;
             if (identical && traceUnchanged) {
@@ -62,6 +62,15 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
                           << " psnr_after=" << psnr_after << std::endl;
 
                 std::cout << "[DEBUG] Trace complete. Exiting." << std::endl;
+                std::exit(0);
+            }
+            if (traceFailed && extracted_bit != target_bit) {
+                std::cout << "[TRACE_FAILED] Block " << i << " target=" << static_cast<int>(target_bit)
+                          << " extracted=" << static_cast<int>(extracted_bit) << std::endl;
+                std::cout << "[TRACE_FAILED] Per-iteration metrics:" << std::endl;
+                GBO gbo_trace;
+                gbo_trace.main_loop(blocks[i], 22, target_bit, scheme, true);
+                std::cout << "[TRACE_FAILED] Trace complete. Exiting." << std::endl;
                 std::exit(0);
             }
             if (!identical && debug && extracted_bit != target_bit) {
@@ -166,10 +175,11 @@ void launchGBO(const std::string& image_path,
                const std::string& extracted_output_path,
                int scheme,
                bool debug,
-               bool traceUnchanged) {
+               bool traceUnchanged,
+               bool traceFailed) {
 
     try {
-        embedWatermark(image_path, watermark_path, watermarked_output_path, scheme, debug, traceUnchanged);
+        embedWatermark(image_path, watermark_path, watermarked_output_path, scheme, debug, traceUnchanged, traceFailed);
         std::cout << "Watermark embedded successfully." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error embedding watermark: " << e.what() << std::endl;
@@ -276,4 +286,18 @@ void launchGBO(const std::string& image_path,
 
     }
 
+}
+
+// Simplified overload: auto-generate temp paths and invoke main variant
+void launchGBO(const std::string& image_path,
+               const std::string& watermark_path,
+               int scheme,
+               bool debug,
+               bool traceUnchanged,
+               bool traceFailed) {
+    std::string tmp_wm = "tmp_wm_single.png";
+    std::string tmp_extract = "tmp_extract_single.png";
+    launchGBO(image_path, watermark_path, tmp_wm, tmp_extract, scheme, debug, traceUnchanged, traceFailed);
+    std::filesystem::remove(tmp_wm);
+    std::filesystem::remove(tmp_extract);
 }

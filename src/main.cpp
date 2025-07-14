@@ -59,12 +59,14 @@ int main(int argc, char* argv[]) {
     bool single_block      = false;
     bool debug_embed       = false;
     bool trace_unchanged   = false;
+    bool trace_failed      = false;
     int trials             = 1;
     for (int i = 1; i < argc; ++i) {
         std::string arg(argv[i]);
         if (arg == "--single-block")          single_block    = true;
         else if (arg == "--debug-embed")      debug_embed     = true;
         else if (arg == "--trace-unchanged")  trace_unchanged = true;
+        else if (arg == "--trace-failed")        trace_failed    = true;
         else if (arg == "--trials" && i + 1 < argc) {
             trials = std::max(1, std::atoi(argv[++i]));
         }
@@ -84,7 +86,7 @@ int main(int argc, char* argv[]) {
                 std::string ext_base  = "tmp_extracted_base_" + std::to_string(t) + ".png";
 
                 // 1) Embed watermark
-                embedWatermark(image_path, watermark_path, wm_out, scheme, debug_embed, trace_unchanged);
+                embedWatermark(image_path, watermark_path, wm_out, scheme, debug_embed, trace_unchanged, trace_failed);
 
                 // 2) Baseline (no attack)
                 extractWatermark(wm_out, ext_base, scheme);
@@ -167,7 +169,7 @@ int main(int argc, char* argv[]) {
                 kv.second.print(kv.first, trials);
             }
         } else {
-            launchGBO(image_path, watermark_path, scheme, debug_embed, trace_unchanged);
+            launchGBO(image_path, watermark_path, scheme, debug_embed, trace_unchanged, trace_failed);
         }
         std::cout << "GBO process finished." << std::endl;
     } catch (const std::exception& e) {

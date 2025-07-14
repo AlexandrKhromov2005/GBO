@@ -1,15 +1,15 @@
 // random_utils.cpp
 #include "../include/random_utils.h"
 
-// Thread-local RNG initialized once per thread
-thread_local static std::mt19937 generator = []{
+// Global RNG initialized once at program start
+static std::mt19937 generator([]{
     std::random_device rd;
-    return std::mt19937(rd());
-}();
+    return rd();
+}());
 
 // Generates a random double in [0, 1]
 double uniform_random_0_1() {
-    thread_local static std::uniform_real_distribution<double> dist(
+    static std::uniform_real_distribution<double> dist(
         std::nextafter(0.0, 1.0), 1.0);
     return dist(generator);
 }
@@ -48,7 +48,7 @@ std::vector<int> generate_random_indices(int N, int best_index, int current_inde
 
 // Generates Gaussian random number in [0, 1] with clamping
 double gaussian_random_0_1() {
-    thread_local static std::normal_distribution<> dist(0.5, 0.15);
+    static std::normal_distribution<> dist(0.5, 0.15);
     
     // Fast path - 99.7% values will be within 3 sigma (0.05-0.95)
     double value = dist(generator);

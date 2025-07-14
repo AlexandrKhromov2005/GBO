@@ -1,5 +1,6 @@
 #include "gbo.h"
 #include <iostream>
+#include "process_block.h"
 
 
 static arma::vec calculate_gsr(double rho2, const arma::vec& best_x, const arma::vec& worst_x, const arma::vec& current_x, const arma::vec& xr1, const arma::vec& dm, const arma::vec& xm, unsigned char flag, int N){
@@ -110,8 +111,18 @@ cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int s
             
         }
         if (verbose) {
-            std::cout << "Iteration " << m + 1 << " best fitness = "
-                      << population.fitness_values[population.indexOfBestIndividual] << std::endl;
+            cv::Mat best_block = applyVectorToBlock(population.individuals[population.indexOfBestIndividual], block, scheme);
+            double psnr_iter = compute_psnr(block, best_block);
+            cv::Mat floatMat;
+            best_block.convertTo(floatMat, CV_64FC1);
+            cv::Mat dctMat;
+            cv::dct(floatMat, dctMat);
+            double s1_iter = getRegionSum(dctMat, s1_region[scheme]);
+            double s0_iter = getRegionSum(dctMat, s0_region[scheme]);
+            std::cout << "Iter " << m + 1
+                      << " fitness=" << population.fitness_values[population.indexOfBestIndividual]
+                      << " s1=" << s1_iter << " s0=" << s0_iter
+                      << " psnr=" << psnr_iter << std::endl;
         }
     }
     cv::Mat result_block = applyVectorToBlock(population.individuals[population.indexOfBestIndividual], block, scheme);
