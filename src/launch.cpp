@@ -362,6 +362,22 @@ void launchGBO(const std::string& image_path,
     std::string tmp_wm = "tmp_wm_single.png";
     std::string tmp_extract = "tmp_extract_single.png";
     launchGBO(image_path, watermark_path, tmp_wm, tmp_extract, scheme);
-    std::filesystem::remove(tmp_wm);
-    std::filesystem::remove(tmp_extract);
+    // Copy baseline results into the images directory with a descriptive suffix
+    try {
+        namespace fs = std::filesystem;
+        fs::path img_path(image_path);
+        fs::path images_dir = img_path.parent_path();
+        std::string stem = img_path.stem().string();
+
+        fs::path dest_wm   = images_dir / (stem + "_no_attack" + img_path.extension().string());
+        fs::path dest_extr = images_dir / ("extracted_no_attack" + img_path.extension().string());
+
+        fs::copy_file(tmp_wm, dest_wm, fs::copy_options::overwrite_existing);
+        fs::copy_file(tmp_extract, dest_extr, fs::copy_options::overwrite_existing);
+    } catch (const std::exception &e) {
+        std::cerr << "Warning: could not copy baseline images: " << e.what() << std::endl;
+    }
+    // Do not delete the files so the user can inspect the baseline output
+    // std::filesystem::remove(tmp_wm);
+    // std::filesystem::remove(tmp_extract);
 }

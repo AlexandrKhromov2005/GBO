@@ -89,12 +89,21 @@ double computeMSE(const cv::Mat& img1, const cv::Mat& img2) {
     }
 
     cv::Mat diff;
-    cv::absdiff(img1, img2, diff);
-    diff.convertTo(diff, CV_32F);
+    cv::Mat img1f, img2f;
+    img1.convertTo(img1f, CV_32F);
+    img2.convertTo(img2f, CV_32F);
+    cv::absdiff(img1f, img2f, diff);
     diff = diff.mul(diff);
 
     cv::Scalar mse_scalar = cv::mean(diff);
-    double mse = (mse_scalar[0] + mse_scalar[1] + mse_scalar[2]) / 3.0;
+    int channels = img1.channels();
+    double mse;
+    if (channels == 1) {
+        mse = mse_scalar[0];
+    } else {
+        // Assume 3-channel RGB
+        mse = (mse_scalar[0] + mse_scalar[1] + mse_scalar[2]) / 3.0;
+    }
 
     return mse;
 }
