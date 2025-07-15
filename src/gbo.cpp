@@ -139,6 +139,8 @@ cv::Mat GBO::main_loop(cv::Mat& block, int vector_size, unsigned char bit, int s
                   << " vec_norm=" << vec_norm
                   << " vec_min=" << vec_min
                   << " vec_max=" << vec_max << std::endl;
+        std::cout << "best vector:" << std::endl;
+        std::cout << best_vec << std::endl;
     }
     return result_block;
 }

@@ -34,28 +34,23 @@ TEST(ZigzagConversion, Reversibility) {
 
 // Тест, демонстрирующий правильный порядок формирования зигзаг-вектора
 TEST(ZigzagConversion, MappingOrder) {
+    // Матрица со значениями 0..63 по строкам
     cv::Mat mat(8, 8, CV_64FC1);
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            mat.at<double>(i, j) = i * 8 + j; // уникальные значения
+    for (int r = 0; r < 8; ++r) {
+        for (int c = 0; c < 8; ++c) {
+            mat.at<double>(r, c) = r * 8 + c;
         }
     }
 
     arma::vec zz = matToZigzag(mat);
 
-    // Формируем эталонный вектор с использованием jpeg_zigzag
-    arma::vec expected = arma::zeros<arma::vec>(64);
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            int idx = jpeg_zigzag[i * 8 + j];
-            expected(idx) = mat.at<double>(i, j);
-        }
+    // Ожидаемый вектор: элемент k содержит linear index jpeg_zigzag[k]
+    arma::vec expected(64);
+    for (int k = 0; k < 64; ++k) {
+        expected(k) = static_cast<double>(jpeg_zigzag[k]);
     }
 
     for (size_t k = 0; k < 64; ++k) {
-        ASSERT_EQ(zz(k), expected(k));
+        EXPECT_DOUBLE_EQ(zz(k), expected(k)) << "Mismatch at position " << k;
     }
 }
-
-
-

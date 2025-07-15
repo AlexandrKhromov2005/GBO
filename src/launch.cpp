@@ -2,6 +2,8 @@
 #include "../include/attacks.h"
 #include <filesystem>
 #include "../include/process_block.h"
+#include <iomanip>
+#include <algorithm>
 
 void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme, bool debug, bool traceUnchanged, bool traceFailed) {
     cv::Mat image = cv::imread(image_path, CV_8UC1);
@@ -69,7 +71,39 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
                           << " extracted=" << static_cast<int>(extracted_bit) << std::endl;
                 std::cout << "[TRACE_FAILED] Per-iteration metrics:" << std::endl;
                 GBO gbo_trace;
-                gbo_trace.main_loop(blocks[i], 22, target_bit, scheme, true);
+                cv::Mat traced_block = gbo_trace.main_loop(blocks[i], 22, target_bit, scheme, true);
+
+                // Print DCT coefficients before and after
+                auto printDCT = [&](const cv::Mat &mat, const std::string &label){
+                    std::cout << label << std::endl;
+                    for (int r = 0; r < 8; ++r) {
+                        for (int c = 0; c < 8; ++c) {
+                            // Determine zigzag index for (r,c)
+                            int linear = r * 8 + c;
+                            int zz_idx = 0;
+                            for (; zz_idx < 64; ++zz_idx) {
+                                if (jpeg_zigzag[zz_idx] == linear) break;
+                            }
+                            bool isEmbed = std::find(embeding_region[scheme].begin(), embeding_region[scheme].end(), zz_idx) != embeding_region[scheme].end();
+                            if (isEmbed) std::cout << "\033[32m"; // green
+                            std::cout << std::setw(9) << std::fixed << std::setprecision(2) << mat.at<double>(r, c);
+                            if (isEmbed) std::cout << "\033[0m";
+                        }
+                        std::cout << std::endl;
+                    }
+                };
+
+                cv::Mat origF, dctOrig;
+                blocks[i].convertTo(origF, CV_64FC1);
+                cv::dct(origF, dctOrig);
+
+                cv::Mat tracedF, dctTraced;
+                traced_block.convertTo(tracedF, CV_64FC1);
+                cv::dct(tracedF, dctTraced);
+
+                printDCT(dctOrig,  "[TRACE_FAILED] DCT ORIGINAL:");
+                printDCT(dctTraced,"[TRACE_FAILED] DCT MODIFIED:");
+
                 std::cout << "[TRACE_FAILED] Trace complete. Exiting." << std::endl;
                 std::exit(0);
             }
@@ -162,7 +196,38 @@ void launchSingleBlockGBO(const std::string& image_path,
         GBO gbo;
         // Verbose flag prints fitness after every iteration
         cv::Mat new_block = gbo.main_loop(block, 22, bit, scheme, true);
-        (void)new_block; // suppress unused warning
+        // Print DCT coefficients before and after with embedding region highlighted
+        auto printDCT = [&](const cv::Mat &mat, const std::string &label){
+            std::cout << label << std::endl;
+            for (int r = 0; r < 8; ++r) {
+                for (int c = 0; c < 8; ++c) {
+                    int linear = r * 8 + c;
+                    int zz_idx = 0;
+                    for (; zz_idx < 64; ++zz_idx) {
+                        if (jpeg_zigzag[zz_idx] == linear) break;
+                    }
+                    bool isEmbed = std::find(embeding_region[scheme].begin(), embeding_region[scheme].end(), zz_idx) != embeding_region[scheme].end();
+                    if (isEmbed) std::cout << "\033[32m"; // green
+                    std::cout << std::setw(9) << std::fixed << std::setprecision(2) << mat.at<double>(r, c);
+                    if (isEmbed) std::cout << "\033[0m";
+                }
+                std::cout << std::endl;
+            }
+        };
+
+        cv::Mat origF, dctOrig;
+        block.convertTo(origF, CV_64FC1);
+        cv::dct(origF, dctOrig);
+
+        cv::Mat newF, dctNew;
+        new_block.convertTo(newF, CV_64FC1);
+        cv::dct(newF, dctNew);
+
+        printDCT(dctOrig,  "[SINGLE_BLOCK] DCT ORIGINAL:");
+        printDCT(dctNew,   "[SINGLE_BLOCK] DCT MODIFIED:");
+
+        double psnr_val = compute_psnr(block, new_block);
+        std::cout << "[SINGLE_BLOCK] PSNR=" << psnr_val << std::endl;
 
     } catch(const std::exception& e){
         std::cerr << "launchSingleBlockGBO error: " << e.what() << std::endl;

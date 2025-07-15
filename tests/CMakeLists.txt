@@ -8,6 +8,8 @@ add_executable(
     unit_tests
     test_func.cpp
     test_population.cpp
+    test_zigzag.cpp
+    test_zigzag_example.cpp
     ${CMAKE_SOURCE_DIR}/src/process_block.cpp
     ${CMAKE_SOURCE_DIR}/src/population.cpp
     ${CMAKE_SOURCE_DIR}/src/random_utils.cpp

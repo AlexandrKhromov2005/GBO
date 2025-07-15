@@ -22,7 +22,7 @@ TEST(PSNR, DifferentBlocks) {
 
 // Тест конструктора Population
 TEST(PopulationClass, Initialization) {
-    cv::Mat block = cv::Mat::ones(8, 8, CV_64FC1) * 128;
+    cv::Mat block(8, 8, CV_8UC1, cv::Scalar(128));
     int vec_size = 22;
     unsigned char bit = 1;
     Population pop(vec_size, block, bit);
@@ -38,7 +38,7 @@ TEST(PopulationClass, Initialization) {
 
 // Тест метода update: подтверждаем, что при улучшении fitness индивидуума best индекс обновится
 TEST(PopulationClass, UpdateImprovesBest) {
-    cv::Mat block = cv::Mat::ones(8, 8, CV_64FC1) * 128;
+    cv::Mat block(8, 8, CV_8UC1, cv::Scalar(128));
     int vec_size = 22;
     unsigned char bit = 1;
     Population pop(vec_size, block, bit);

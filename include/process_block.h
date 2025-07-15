@@ -22,9 +22,19 @@ double calcFitnessValue(const cv::Mat& block, const arma::vec& vec, unsigned cha
 double compute_psnr(const cv::Mat& orig, const cv::Mat& test);
 double getRegionSum(const cv::Mat& dctBlock, std::vector<int> region);
 
-const std::vector<std::vector<int>> embeding_region  = {{21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42},
+// Updated embedding region for scheme 0: mask
+// 00000001
+// 00000011
+// 00000110
+// 00001100
+// 00011000
+// 00110000
+// 01100000
+// 11000000
+// Values are zig-zag indices corresponding to the linear positions above
+const std::vector<std::vector<int>> embeding_region  = {{4, 5, 7, 10, 14, 15, 23, 41, 48, 52, 53, 56, 57, 59, 60},
                                                         {11, 12, 13, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42}};
-const std::vector<std::vector<int>> s1_region        = {{21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41},
+const std::vector<std::vector<int>> s1_region        = {{5, 7, 15, 23, 41, 53, 57, 59},
                                                         {11, 13, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41}};
-const std::vector<std::vector<int>> s0_region        = {{22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42},
+const std::vector<std::vector<int>> s0_region        = {{4, 10, 14, 48, 52, 56, 60},
                                                         {12, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42}};
