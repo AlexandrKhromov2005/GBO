@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <algorithm>
 
-void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme, bool debug, bool traceUnchanged, bool traceFailed) {
+void embedWatermark(std::string image_path, std::string watermark_path, std::string output_path, int scheme) {
     cv::Mat image = cv::imread(image_path, CV_8UC1);
     if (image.empty()) {
         throw std::runtime_error("Could not open or find the image: " + image_path);
@@ -20,6 +20,11 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
     std::vector<cv::Mat> new_blocks;
 
     std::vector<unsigned char> watermark_bits = extract_watermark_bits(watermark);
+
+    // Debug/tracing modes have been removed for production build.
+    const bool debug = false;
+    const bool traceUnchanged = false;
+    const bool traceFailed = false;
 
     for (size_t i = 0; i < blocks.size(); ++i) {
         GBO gbo;
@@ -238,13 +243,10 @@ void launchGBO(const std::string& image_path,
                const std::string& watermark_path,
                const std::string& watermarked_output_path,
                const std::string& extracted_output_path,
-               int scheme,
-               bool debug,
-               bool traceUnchanged,
-               bool traceFailed) {
+               int scheme) {
 
     try {
-        embedWatermark(image_path, watermark_path, watermarked_output_path, scheme, debug, traceUnchanged, traceFailed);
+        embedWatermark(image_path, watermark_path, watermarked_output_path, scheme);
         std::cout << "Watermark embedded successfully." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error embedding watermark: " << e.what() << std::endl;
@@ -356,13 +358,10 @@ void launchGBO(const std::string& image_path,
 // Simplified overload: auto-generate temp paths and invoke main variant
 void launchGBO(const std::string& image_path,
                const std::string& watermark_path,
-               int scheme,
-               bool debug,
-               bool traceUnchanged,
-               bool traceFailed) {
+               int scheme) {
     std::string tmp_wm = "tmp_wm_single.png";
     std::string tmp_extract = "tmp_extract_single.png";
-    launchGBO(image_path, watermark_path, tmp_wm, tmp_extract, scheme, debug, traceUnchanged, traceFailed);
+    launchGBO(image_path, watermark_path, tmp_wm, tmp_extract, scheme);
     std::filesystem::remove(tmp_wm);
     std::filesystem::remove(tmp_extract);
 }
