@@ -1,12 +1,14 @@
 BUILD_DIR := build
 EXECUTABLE := main
+# Set DEBUG=1 when calling make to enable verbose debug logging (passes ENABLE_DEBUG_LOG=ON to CMake)
+DEBUG ?= 0
 
 .PHONY: all run test clean rm_images clear_dataset build_dataset help total_clean
 
 all: $(BUILD_DIR)/$(EXECUTABLE)
 
 $(BUILD_DIR)/$(EXECUTABLE):
-	cmake -B $(BUILD_DIR) -S .
+	cmake -B $(BUILD_DIR) -S . -DENABLE_DEBUG_LOG=$(DEBUG)
 	$(MAKE) -C $(BUILD_DIR)
 
 run: all

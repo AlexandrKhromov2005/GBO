@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 project(watermarking_project)
 
+# Option to enable verbose debug logging (compiled in with macro ENABLE_DEBUG_LOG)
+option(ENABLE_DEBUG_LOG "Enable verbose debug logging" OFF)
+if(ENABLE_DEBUG_LOG)
+    add_compile_definitions(ENABLE_DEBUG_LOG)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")

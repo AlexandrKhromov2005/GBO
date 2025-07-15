@@ -1,6 +1,7 @@
 #include "gbo.h"
 #include <iostream>
 #include "process_block.h"
+#include "debug_log.h"
 
 
 static arma::vec calculate_gsr(double rho2, const arma::vec& best_x, const arma::vec& worst_x, const arma::vec& current_x, const arma::vec& xr1, const arma::vec& dm, const arma::vec& xm, unsigned char flag, int N){
