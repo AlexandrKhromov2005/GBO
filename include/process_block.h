@@ -43,9 +43,15 @@ double getRegionSum(const cv::Mat& dctBlock, std::vector<int> region);
 // 12100000
 // 12000000
 // Values are zig-zag indices corresponding to the linear positions above
-const std::vector<std::vector<int>> embeding_region  = {{21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42},
-                                                        {11, 12, 13, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42}};
-const std::vector<std::vector<int>> s1_region        = {{21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41},
-                                                        {11, 13, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41}};
-const std::vector<std::vector<int>> s0_region        = {{22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42},
-                                                        {12, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42}};
+const std::vector<std::vector<int>> embeding_region = {
+    {3, 4, 5, 6, 7, 10, 11, 14, 15, 22, 23, 40, 41, 48, 49, 52, 53, 56, 57, 58, 59, 60},
+    {3, 4, 5, 6, 7, 10, 11, 14, 15, 20, 22, 23, 25, 26, 40, 41, 48, 49, 52, 53, 56, 57, 58, 59, 60}
+};
+const std::vector<std::vector<int>> s1_region = {
+    {3, 4, 7, 15, 40, 41, 49, 52, 53, 57, 58},
+    {3, 4, 7, 15, 20, 25, 40, 41, 49, 52, 53, 57, 58}
+};
+const std::vector<std::vector<int>> s0_region = {
+    {5, 6, 10, 11, 14, 22, 23, 48, 56, 59, 60},
+    {5, 6, 10, 11, 14, 22, 23, 26, 48, 56, 59, 60}
+};

@@ -29,7 +29,7 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
     for (size_t i = 0; i < blocks.size(); ++i) {
         GBO gbo;
         unsigned char target_bit = watermark_bits[i % watermark_bits.size()];
-        cv::Mat new_block = gbo.main_loop(blocks[i], 22, target_bit, scheme);
+        cv::Mat new_block = gbo.main_loop(blocks[i], embeding_region[scheme].size(), target_bit, scheme);
         // Debug: verify embedding success
         if (debug || traceUnchanged || traceFailed) {
             unsigned char extracted_bit = getBitFromBlock(new_block, scheme);
@@ -54,7 +54,7 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
                 // Additionally run GBO with verbose to trace fitness evolution
                 std::cout << "[DEBUG] Fitness evolution for block " << i << std::endl;
                 GBO gbo_trace;
-                cv::Mat traced_block = gbo_trace.main_loop(blocks[i], 22, target_bit, scheme, true);
+                cv::Mat traced_block = gbo_trace.main_loop(blocks[i], embeding_region[scheme].size(), target_bit, scheme, true);
 
                 // Compute region sums after GBO attempt
                 cv::Mat tracedFloat;
@@ -76,7 +76,7 @@ void embedWatermark(std::string image_path, std::string watermark_path, std::str
                           << " extracted=" << static_cast<int>(extracted_bit) << std::endl;
                 std::cout << "[TRACE_FAILED] Per-iteration metrics:" << std::endl;
                 GBO gbo_trace;
-                cv::Mat traced_block = gbo_trace.main_loop(blocks[i], 22, target_bit, scheme, true);
+                cv::Mat traced_block = gbo_trace.main_loop(blocks[i], embeding_region[scheme].size(), target_bit, scheme, true);
 
                 // Print DCT coefficients before and after
                 auto printDCT = [&](const cv::Mat &mat, const std::string &label){
@@ -200,7 +200,7 @@ void launchSingleBlockGBO(const std::string& image_path,
         std::cout << "Running GBO for single 8x8 block (scheme=" << scheme << ")" << std::endl;
         GBO gbo;
         // Verbose flag prints fitness after every iteration
-        cv::Mat new_block = gbo.main_loop(block, 22, bit, scheme, true);
+        cv::Mat new_block = gbo.main_loop(block, embeding_region[scheme].size(), bit, scheme, true);
         // Print DCT coefficients before and after with embedding region highlighted
         auto printDCT = [&](const cv::Mat &mat, const std::string &label){
             std::cout << label << std::endl;
