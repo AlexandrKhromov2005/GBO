@@ -75,7 +75,7 @@ cv::Mat simulateAttack(const cv::Mat& src, AttackType type, double param1, int p
     }
 }
 
-const std::vector<AttackType> attacks = {AttackType::ContrastIncrease, AttackType::JPEGCompression};
+const std::vector<AttackType> attacks = {AttackType::JPEGCompression, AttackType::ContrastIncrease};
 
 struct ISB { // Image, Scheme and Bit
     cv::Mat image;
@@ -99,102 +99,121 @@ struct BSB { // Block, Scheme and Bit
 #include <random>
 #include <unordered_map>
 
-void buildDataset() {
-size_t total_blocks_estimate = 0;
-for (const auto& img_path : images) {
-    cv::Mat tmp = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
-    if (tmp.empty()) continue;
-    size_t blocks_in_img = (tmp.rows / 8) * (tmp.cols / 8);
-    size_t variants = amount_of_schemes * 2 * (1 + attacks.size());
-    total_blocks_estimate += blocks_in_img * variants;
-}
-size_t processed_blocks = 0;
-std::vector<size_t> scheme_counts(amount_of_schemes, 0);
-std::unordered_map<std::string, int> multi_nums; 
-
-int image_index = 0;
-for (auto& image : images) {
-        std::cout << "\n\n[" << ++image_index << "/" << images.size() << "] Processing image: " << image << std::endl;
-        std::vector<int> nums(amount_of_schemes, 0);
-        std::vector<ISB> images_copies;
-        cv::Mat img = cv::imread(image, cv::IMREAD_GRAYSCALE);
-        for (int i = 0; i < amount_of_schemes; ++i) {
-            cv::Mat black_img = embedUniformBits(img, 0, i);
-            cv::Mat white_img = embedUniformBits(img, 1, i);
-            images_copies.emplace_back(black_img, i,  0);
-            images_copies.emplace_back(white_img, i,  1);
+void buildDataset(int tau_max) {
+    std::filesystem::create_directories("dataset/Dir1");
+    std::filesystem::create_directories("dataset/Dir2");
+    std::filesystem::create_directories("dataset/Dirrand");
+    
+    int dir1_count = 0, dir2_count = 0, dirrand_count = 0;
+    size_t total_blocks_estimate = 0;
+    
+    for (const auto& img_path : images) {
+        cv::Mat tmp = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+        if (tmp.empty()) continue;
+        total_blocks_estimate += (tmp.rows / 8) * (tmp.cols / 8);
+    }
+    
+    size_t processed_blocks = 0;
+    int image_index = 0;
+    
+    for (const auto& image_path : images) {
+        std::cout << "\n\n[" << ++image_index << "/" << images.size() << "] Processing image: " << image_path << std::endl;
+        
+        cv::Mat original_img = cv::imread(image_path, cv::IMREAD_GRAYSCALE);
+        if (original_img.empty()) {
+            std::cout << "Error: Could not load image " << image_path << std::endl;
+            continue;
         }
-        std::cout << "Geberated clear copies with 0 and 1 bits for all schemes" << std::endl;
-
-        int n = images_copies.size();
-        for (int i = 0; i < n; ++i) {
-            for (auto& attack : attacks) {
-                cv::Mat attacked_image = simulateAttack(images_copies[i].image, attack);
-                images_copies.emplace_back(attacked_image, images_copies[i].scheme, images_copies[i].bit);
-            }
+        
+        // Шаг 1: Создаем 4 копии изображения для каждого класса (I0^1, I1^1, I0^2, I1^2)
+        std::vector<ISB> image_copies;
+        for (int scheme = 0; scheme < 2; ++scheme) {
+            cv::Mat img_bit0 = embedUniformBits(original_img, 0, scheme);
+            cv::Mat img_bit1 = embedUniformBits(original_img, 1, scheme);
+            image_copies.emplace_back(img_bit0, scheme, 0);
+            image_copies.emplace_back(img_bit1, scheme, 1);
         }
-        std::cout << "Geberated attacked copies with 0 and 1 bits for all schemes" << std::endl;
-
-        std::vector<std::vector<BSB>> sets_of_blocks;
-        for (const auto& item : images_copies) {
-            std::vector<BSB> blocks;
-            std::vector<cv::Mat> image_blocks = splitImageInto8x8Blocks(item.image);
-            for (const auto& block : image_blocks) {
-                blocks.emplace_back(block, item.scheme, item.bit);
-            }
-            sets_of_blocks.push_back(blocks);
-            std::cout << "    Generated " << blocks.size() << " blocks for scheme " << item.scheme 
-                      << " bit " << static_cast<int>(item.bit) << std::endl;
+        std::cout << "Generated embedded copies for both schemes" << std::endl;
+        
+        // Шаг 3: Атакуем каждую копию отдельно (JPEG70 или Увеличение контрастности)
+        int original_copies_count = image_copies.size();
+        for (int i = 0; i < original_copies_count; ++i) {
+            // JPEG70 атака
+            cv::Mat jpeg_attacked = simulateAttack(image_copies[i].image, AttackType::JPEGCompression, 70);
+            image_copies.emplace_back(jpeg_attacked, image_copies[i].scheme, image_copies[i].bit);
+            
+            // Увеличение контрастности
+            cv::Mat contrast_attacked = simulateAttack(image_copies[i].image, AttackType::ContrastIncrease, 1.2);
+            image_copies.emplace_back(contrast_attacked, image_copies[i].scheme, image_copies[i].bit);
         }
-
-        for (int i = 0; i < sets_of_blocks[0].size(); ++i) {
-            std::vector<int> errors(amount_of_schemes, 0);
-            for (auto& s : sets_of_blocks) {
-                unsigned char bit = getBitFromBlock(s[i].block, s[i].scheme);
-                if (bit != s[i].bit) errors[s[i].scheme]++; 
+        std::cout << "Generated attacked copies: JPEG70 and Contrast increase (separately)" << std::endl;
+        
+        // Шаг 4: Делим все копии на блоки 8x8
+        std::vector<std::vector<BSB>> block_groups;
+        for (const auto& img_copy : image_copies) {
+            std::vector<cv::Mat> blocks_8x8 = splitImageInto8x8Blocks(img_copy.image);
+            std::vector<BSB> blocks_with_info;
+            for (const auto& block : blocks_8x8) {
+                blocks_with_info.emplace_back(block, img_copy.scheme, img_copy.bit);
             }
-            int min_error = *std::min_element(errors.begin(), errors.end());
-            std::vector<int> min_indices;
-            for (int idx = 0; idx < errors.size(); ++idx) {
-                if (errors[idx] == min_error) {
-                    min_indices.push_back(idx);
+            block_groups.push_back(blocks_with_info);
+        }
+        
+        // Шаг 5-7: Классификация блоков по новому алгоритму
+        // Теперь у нас 12 групп блоков: 4 схемы×биты (оригинал) + 4 JPEG + 4 контраст
+        // Для каждой схемы: 6 вариантов (без атаки 0, без атаки 1, JPEG 0, JPEG 1, контраст 0, контраст 1)
+        int total_blocks_in_image = block_groups[0].size();
+        for (int block_idx = 0; block_idx < total_blocks_in_image; ++block_idx) {
+            // Подсчитываем ошибки для каждой схемы (tau может быть от 0 до 6)
+            std::vector<int> scheme_errors(2, 0);
+            
+            for (const auto& group : block_groups) {
+                unsigned char extracted_bit = getBitFromBlock(group[block_idx].block, group[block_idx].scheme);
+                if (extracted_bit != group[block_idx].bit) {
+                    scheme_errors[group[block_idx].scheme]++;
                 }
             }
-
-            std::string dir_name = "scheme_";
-            for (size_t k = 0; k < min_indices.size(); ++k) {
-                dir_name += std::to_string(min_indices[k]);
-                if (k + 1 < min_indices.size()) dir_name += "_";
-            }
-
-            int block_num;
-            if (min_indices.size() == 1) {
-                int single_idx = min_indices[0];
-                block_num = nums[single_idx]++;
-                scheme_counts[single_idx]++;
+            
+            int tau1 = scheme_errors[0];  // ошибки для схемы 0 (от 0 до 6)
+            int tau2 = scheme_errors[1];  // ошибки для схемы 1 (от 0 до 6)
+            
+            // Классификация согласно алгоритму из PDF
+            cv::Mat original_block = splitImageInto8x8Blocks(original_img)[block_idx];
+            std::string output_path;
+            
+            if (tau1 < tau_max) {
+                // Класс 1
+                output_path = "dataset/Dir1/block_" + std::to_string(dir1_count++) + ".png";
+            } else if (tau2 <= tau_max && tau_max <= tau1) {
+                // Класс 2  
+                output_path = "dataset/Dir2/block_" + std::to_string(dir2_count++) + ".png";
             } else {
-                block_num = multi_nums[dir_name]++;
+                // Неопределенные
+                output_path = "dataset/Dirrand/block_" + std::to_string(dirrand_count++) + ".png";
             }
-
-            std::filesystem::create_directories("dataset/" + dir_name);
-            std::string name_of_dir = "dataset/" + dir_name + "/block_" + std::to_string(block_num) + ".png";
-            cv::imwrite(name_of_dir, sets_of_blocks[0][i].block);
-
+            
+            cv::imwrite(output_path, original_block);
+            
             processed_blocks++;
             double perc = 100.0 * static_cast<double>(processed_blocks) / static_cast<double>(total_blocks_estimate);
             std::cout << "\rBuilding dataset: " << std::fixed << std::setprecision(1) << perc << "%" << std::flush;
-
         }
-
-    std::cout << "\n\nDataset building complete. Blocks per folder:" << std::endl;
-    // Single-scheme folders
-    for (int i = 0; i < amount_of_schemes; ++i) {
-        std::cout << "  scheme_" << i << ": " << scheme_counts[i] << " blocks" << std::endl;
     }
-    // Multi-scheme folders
-    for (const auto &kv : multi_nums) {
-        std::cout << "  " << kv.first << ": " << kv.second << " blocks" << std::endl;
-    }
-
+    
+    std::cout << "\n\nDataset building complete (tau_max = " << tau_max << "):" << std::endl;
+    std::cout << "  Dir1 (Scheme 1): " << dir1_count << " blocks" << std::endl;
+    std::cout << "  Dir2 (Scheme 2): " << dir2_count << " blocks" << std::endl;
+    std::cout << "  Dirrand (Undefined): " << dirrand_count << " blocks" << std::endl;
+    
+    double total = dir1_count + dir2_count + dirrand_count;
+    if (total > 0) {
+        std::cout << "\nDistribution:" << std::endl;
+        std::cout << "  Dir1: " << std::fixed << std::setprecision(1) << (dir1_count/total*100) << "%" << std::endl;
+        std::cout << "  Dir2: " << std::fixed << std::setprecision(1) << (dir2_count/total*100) << "%" << std::endl;
+        std::cout << "  Dirrand: " << std::fixed << std::setprecision(1) << (dirrand_count/total*100) << "%" << std::endl;
+        
+        if (dirrand_count/total > 0.3) {
+            std::cout << "\nWarning: High percentage of undefined blocks (>30%). Consider adjusting tau_max." << std::endl;
+        }
     }
 }

@@ -1,0 +1,15 @@
+/build
+/.vscode
+/.claude
+/dataset
+
+# Temporary files
+*.tmp
+*.temp
+tmp_*
+temp_*
+
+# Generated images from testing
+*_watermarked_*.png
+*_extracted_*.png
+*_attacked_*.png
