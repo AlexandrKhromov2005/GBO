@@ -61,5 +61,5 @@ enum class AttackType {
 cv::Mat simulateAttack(const cv::Mat& src, AttackType type, double param1 = 10.0, int param2 = 3);
 
 // Build dataset using embedding and attacks
-auto buildDataset(int tau_max = 3) -> void;
+auto buildDataset(int tau_max = 2) -> void;
 
